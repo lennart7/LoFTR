@@ -1,6 +1,4 @@
 from os import path as osp
-from typing import Dict
-from unicodedata import name
 
 import numpy as np
 import torch
@@ -10,7 +8,6 @@ from src.utils.dataset import (
     read_scannet_gray,
     read_scannet_depth,
     read_scannet_pose,
-    read_scannet_intrinsic
 )
 
 
@@ -63,7 +60,7 @@ class ScanNetDataset(utils.data.Dataset):
     def _compute_rel_pose(self, scene_name, name0, name1):
         pose0 = self._read_abs_pose(scene_name, name0)
         pose1 = self._read_abs_pose(scene_name, name1)
-        
+
         return np.matmul(pose1, inv(pose0))  # (4, 4)
 
     def __getitem__(self, idx):
@@ -74,17 +71,17 @@ class ScanNetDataset(utils.data.Dataset):
         # read the grayscale image which will be resized to (1, 480, 640)
         img_name0 = osp.join(self.root_dir, scene_name, 'color', f'{stem_name_0}.jpg')
         img_name1 = osp.join(self.root_dir, scene_name, 'color', f'{stem_name_1}.jpg')
-        
+
         # TODO: Support augmentation & handle seeds for each worker correctly.
         image0 = read_scannet_gray(img_name0, resize=(640, 480), augment_fn=None)
-                                #    augment_fn=np.random.choice([self.augment_fn, None], p=[0.5, 0.5]))
+        #    augment_fn=np.random.choice([self.augment_fn, None], p=[0.5, 0.5]))
         image1 = read_scannet_gray(img_name1, resize=(640, 480), augment_fn=None)
-                                #    augment_fn=np.random.choice([self.augment_fn, None], p=[0.5, 0.5]))
+        #    augment_fn=np.random.choice([self.augment_fn, None], p=[0.5, 0.5]))
 
         # read the depthmap which is stored as (480, 640)
         if self.mode in ['train', 'val']:
-            depth0 = read_scannet_depth(osp.join(self.root_dir, scene_name, 'depth', f'{stem_name_0}.png'))
-            depth1 = read_scannet_depth(osp.join(self.root_dir, scene_name, 'depth', f'{stem_name_1}.png'))
+            depth0 = read_scannet_depth(osp.join(self.root_dir, scene_name, 'depth', f'{stem_name_0}.tiff'))
+            depth1 = read_scannet_depth(osp.join(self.root_dir, scene_name, 'depth', f'{stem_name_1}.tiff'))
         else:
             depth0 = depth1 = torch.tensor([])
 

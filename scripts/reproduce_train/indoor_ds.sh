@@ -7,11 +7,12 @@ PROJECT_DIR="${SCRIPTPATH}/../../"
 export PYTHONPATH=$PROJECT_DIR:$PYTHONPATH
 cd $PROJECT_DIR
 
-data_cfg_path="configs/data/scannet_trainval.py"
+# data_cfg_path="configs/data/scannet_trainval.py"
+data_cfg_path="configs/data/holistic_trainval.py"
 main_cfg_path="configs/loftr/indoor/loftr_ds_dense.py"
 
 n_nodes=1
-n_gpus_per_node=4
+n_gpus_per_node=1
 torch_num_workers=4
 batch_size=1
 pin_memory=true

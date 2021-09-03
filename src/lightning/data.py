@@ -25,6 +25,7 @@ from src.utils.misc import tqdm_joblib
 from src.utils import comm
 from src.datasets.megadepth import MegaDepthDataset
 from src.datasets.scannet import ScanNetDataset
+from src.datasets.holistic_or import HolisticORDataset
 from src.datasets.sampler import RandomConcatSampler
 
 
@@ -89,14 +90,14 @@ class MultiSceneDataModule(pl.LightningDataModule):
             'num_workers': args.num_workers,
             'pin_memory': True
         }
-        
+
         # 4. sampler
         self.data_sampler = config.TRAINER.DATA_SAMPLER
         self.n_samples_per_subset = config.TRAINER.N_SAMPLES_PER_SUBSET
         self.subset_replacement = config.TRAINER.SB_SUBSET_SAMPLE_REPLACEMENT
         self.shuffle = config.TRAINER.SB_SUBSET_SHUFFLE
         self.repeat = config.TRAINER.SB_REPEAT
-        
+
         # (optional) RandomSampler for debugging
 
         # misc configurations
@@ -182,12 +183,12 @@ class MultiSceneDataModule(pl.LightningDataModule):
         else:
             local_npz_names = npz_names
         logger.info(f'[rank {self.rank}]: {len(local_npz_names)} scene(s) assigned.')
-        
+
         dataset_builder = self._build_concat_dataset_parallel \
                             if self.parallel_load_data \
                             else self._build_concat_dataset
         return dataset_builder(data_root, local_npz_names, split_npz_root, intri_path,
-                                mode=mode, min_overlap_score=min_overlap_score, pose_dir=pose_dir)
+                               mode=mode, min_overlap_score=min_overlap_score, pose_dir=pose_dir)
 
     def _build_concat_dataset(
         self,
@@ -230,10 +231,19 @@ class MultiSceneDataModule(pl.LightningDataModule):
                                      depth_padding=self.mgdpt_depth_pad,
                                      augment_fn=augment_fn,
                                      coarse_scale=self.coarse_scale))
+            elif data_source == "HolisticOR":
+                datasets.append(
+                    HolisticORDataset(data_root,
+                                      npz_path,
+                                      intrinsic_path,
+                                      mode=mode,
+                                      min_overlap_score=min_overlap_score,
+                                      augment_fn=augment_fn,
+                                      pose_dir=pose_dir))
             else:
                 raise NotImplementedError()
         return ConcatDataset(datasets)
-    
+
     def _build_concat_dataset_parallel(
         self,
         data_root,
@@ -296,7 +306,7 @@ class MultiSceneDataModule(pl.LightningDataModule):
             sampler = None
         dataloader = DataLoader(self.train_dataset, sampler=sampler, **self.train_loader_params)
         return dataloader
-    
+
     def val_dataloader(self):
         """ Build validation dataloader for ScanNet / MegaDepth. """
         logger.info(f'[rank:{self.rank}/{self.world_size}]: Val Sampler and DataLoader re-init.')
